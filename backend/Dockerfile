@@ -1,32 +1,39 @@
-# Imagen base oficial de PHP con Apache
-FROM php:8.3-apache
+FROM php:8.2-fpm
 
-# Instalar extensiones necesarias para Laravel y PostgreSQL
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    git unzip zip libpq-dev libonig-dev libzip-dev curl libcurl4-openssl-dev \
-    && docker-php-ext-install pdo pdo_pgsql mbstring zip curl
+    build-essential \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    curl \
+    git \
+    libpq-dev
 
-# Habilitar módulos de Apache necesarios
-RUN a2enmod rewrite
+# Instalar extensiones PHP necesarias
+RUN docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
 
-# Copiar los archivos del proyecto al contenedor
-COPY . /var/www/html
+# Instalar Composer
+COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 
 # Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Establecer permisos apropiados para Laravel
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
+# Copiar archivos del proyecto
+COPY . .
 
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Instalar dependencias PHP
+RUN composer install --optimize-autoloader --no-dev
 
-# Instalar dependencias de Laravel
-RUN composer install --no-dev --optimize-autoloader
+# Permisos a las carpetas necesarias
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Exponer el puerto 80 (por Apache)
-EXPOSE 80
+# Exponer el puerto
+EXPOSE 8000
 
-# Comando por defecto (Apache)
-CMD ["apache2-foreground"]
+# Comando por defecto para iniciar el servidor
+CMD php artisan serve --host=0.0.0.0 --port=8000
