@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: locations-api-backend
+    env: docker
+    plan: free
+    repo: https://github.com/AnailysRodriguez/locations-api-prueba-joonik
+    branch: main
+    dockerfilePath: ./Dockerfile
+    rootDir: .
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
