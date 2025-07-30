@@ -1,33 +1,32 @@
-FROM php:8.2-fpm
+# Imagen base oficial de PHP con Apache
+FROM php:8.3-apache
 
-# Instalar extensiones necesarias
+# Instalar extensiones necesarias para Laravel y PostgreSQL
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpng-dev \
-    libjpeg-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    libpq-dev \
-    && docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
+    git unzip zip libpq-dev libonig-dev libzip-dev curl libcurl4-openssl-dev \
+    && docker-php-ext-install pdo pdo_pgsql mbstring zip curl
 
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Habilitar módulos de Apache necesarios
+RUN a2enmod rewrite
+
+# Copiar los archivos del proyecto al contenedor
+COPY . /var/www/html
 
 # Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar archivos del proyecto
-COPY ./backend ./
+# Establecer permisos apropiados para Laravel
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Instalar dependencias
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Instalar dependencias de Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Exponer puerto 8000
-EXPOSE 8000
+# Exponer el puerto 80 (por Apache)
+EXPOSE 80
 
-# Comando por defecto para iniciar Laravel
-CMD php artisan serve --host=0.0.0.0 --port=8000
+# Comando por defecto (Apache)
+CMD ["apache2-foreground"]
